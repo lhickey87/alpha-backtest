@@ -114,7 +114,7 @@ endTime = datetime.now(pytz.utc)
 tickers, tickersDf = get_ticker_dfs(start=start, end=endTime)
 
 for ticker, dataframe in tickersDf.items():
-    print(ticker)
+    print()
     print(dataframe)
     input("Hello")
 
