@@ -6,6 +6,8 @@ import pandas as pd
 import pytz
 import requests
 import yfinance as yf
+from utils import save_pickle, load_pickle
+from engine import Portfolio, get_pnl
 
 url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 header = {"User-Agent": "Mozilla/5.0"}
@@ -59,6 +61,7 @@ def get_history(ticker, period_start, period_end, granularity="1d", tries=0):
     if df.empty:
         return pd.DataFrame()
 
+    df["datetime"] = df["datetime"].dt.tz_convert(pytz.utc).dt.normalize()
     df = df.drop(columns=["Dividends", "Stock Splits"])
     df = df.set_index("datetime", drop=True)
     return df
@@ -97,13 +100,12 @@ def get_ticker_dfs(start: datetime, end: datetime):
     )
     # now it would be very nice to wrap it into a dictionary ticker as key value as dataframe
     tickers_df = {ticker: df for ticker, df in zip(tickers, stocks)}
+    save_pickle("dataset.obj", (tickers, tickers_df))
     return tickers, tickers_df
 
 
 # 1. Start the threads via [thread.start() for thread in threads]
 # 2. Join them to relinquish control to caller thread [thread.join() for thread in threads]
-# Now at this point we would have called the helper method on supposedely ALL of our tickers
-# And so next we would need to look into what sorts of errors could arise from this call
 # 1. Important to make sure that when we call the helper, we are able to do multiple tries??
 
 
@@ -113,9 +115,12 @@ endTime = datetime.now(pytz.utc)
 
 tickers, tickersDf = get_ticker_dfs(start=start, end=endTime)
 
-for ticker, dataframe in tickersDf.items():
-    print()
-    print(dataframe)
-    input("Hello")
+tickers = tickers[:20]
 
-# so now that we actually have the tickers we should look to yfinance to download histories
+portfolio = Portfolio(tickers = tickers,
+                      tickers_df=tickersDf,
+                      start = start,
+                      end = endTime)
+
+df = portfolio.backtest()
+print(df)
